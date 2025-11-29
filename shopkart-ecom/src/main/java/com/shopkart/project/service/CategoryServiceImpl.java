@@ -1,7 +1,7 @@
 package com.shopkart.project.service;
 
 import java.util.List;
-import java.util.Optional;
+import java.util.Map;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -21,14 +21,22 @@ public class CategoryServiceImpl implements CategoryService {
 
 	// private Long nextId = 1L;
 
+	public Category mapToCategory(Map<String, Object> requestBody) {
+		Category category = new Category();
+		category.setCategoryName((String) requestBody.get("categoryName"));
+
+		return category;
+	}
+
 	@Override
 	public List<Category> getAllCategories() {
 		return categoryRepository.findAll();
 	}
 
 	@Override
-	public void createCategory(Category category) {
+	public void createCategory(Map<String, Object> requestBody) {
 		// category.setCategoryId(nextId++);
+		Category category = mapToCategory(requestBody);
 		categoryRepository.save(category);
 	}
 
