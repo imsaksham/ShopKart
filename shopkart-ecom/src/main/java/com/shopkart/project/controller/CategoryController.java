@@ -19,7 +19,6 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.server.ResponseStatusException;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.shopkart.project.exceptions.ServiceException;
@@ -45,7 +44,7 @@ public class CategoryController {
 
 	@SuppressWarnings("unchecked")
 	@PostConstruct
-	void init() {
+	void init() throws Exception {
 		try {
 			validationProperties = new ObjectMapper()
 					.readValue(new ClassPathResource("api-validation-config.json").getFile(), Map.class);
@@ -55,7 +54,7 @@ public class CategoryController {
 			MessageUtility.loadMessage((List) messageProperties.get("messages"));
 			MessageUtility.loadValidation(validationProperties);
 		} catch (Exception ex) {
-			
+			throw ex;
 		}
 	}
 
@@ -71,7 +70,7 @@ public class CategoryController {
 			if (requiredFields != null && !requiredFields.isEmpty()) {
 				Set<String> requestKeys = new HashSet<>();
 
-				for (Map.Entry<String, Object> map: categoryApi.entrySet()) {
+				for (Map.Entry<String, Object> map: requestBody.entrySet()) {
 					requestKeys.add(map.getKey());
 				}
 
@@ -80,7 +79,7 @@ public class CategoryController {
 							  .collect(Collectors.toSet());
 
 				if (!missingRequiredFields.isEmpty()) {
-					throw new ServiceException(false, "Missing required fields: " +missingRequiredFields);
+					throw new ServiceException(false, 401, "Missing required fields: " +missingRequiredFields);
 				}
 			}
 
@@ -105,41 +104,42 @@ public class CategoryController {
 
 	@GetMapping("/public/categories")
 	public ResponseEntity<List<Category>> getAllCategories() {
-		List<Category> categories = categoryService.getAllCategories();
-		return new ResponseEntity<>(categories, HttpStatus.OK);
+		try {
+			List<Category> categories = categoryService.getAllCategories();
+			return new ResponseEntity<>(categories, HttpStatus.OK);
+		} catch (ServiceException ex) {
+			throw new ServiceException(true, ex.getErrorCode(), ex.getLocalizedMessage());
+		} catch (Exception ex) {
+			throw new ServiceException(true, 401, ex.getLocalizedMessage());
+		}
 	}
 
 	@PostMapping("/public/categories")
 	public ResponseEntity<String> createCategory(@RequestBody Map<String, Object> requestBody) {
 		logger.debug("requestBody: " +requestBody);
 		try {
-			if (requestBody.isEmpty()) {
-				throw new ServiceException(true, MessageUtility.getMessage("requestBodyFieldNotPresent").getCode(), MessageUtility.getMessage("requestBodyFieldNotPresent").getMessage());
-			}
-
 			isValidBody("category-api", requestBody);
-
 			categoryService.createCategory(requestBody);
 
 			return new ResponseEntity<>("Category added successfully", HttpStatus.CREATED);
 		} catch (ServiceException ex) {
-			if (ex instanceof ServiceException) {
-				throw new ServiceException(true, ex.getErrorCode(), ex.getLocalizedMessage());
-			}
-
-			throw new ServiceException(true, 401, "Failed to create category: " +ex.getMessage());
+			throw new ServiceException(true, ex.getErrorCode(), ex.getLocalizedMessage());
 		} catch (Exception ex) {
-			throw ex;
+			throw new ServiceException(true, 401, "Failed to create category: " +ex.getMessage());
 		}
 	}
 
 	@PutMapping("/public/categories/{categoryId}")
-	public ResponseEntity<String> updateCategory(@RequestBody Category category, @PathVariable Long categoryId) {
+	public ResponseEntity<String> updateCategory(@RequestBody Map<String, Object> requestBody, @PathVariable Long categoryId) {
 		try {
-			categoryService.updateCategpry(category, categoryId);
+			isValidBody("category-api", requestBody);
+			categoryService.updateCategpry(requestBody, categoryId);
+
 			return new ResponseEntity<String>("Updated category with category id: " +categoryId, HttpStatus.OK);
-		} catch (ResponseStatusException e) {
-			return new ResponseEntity<>(e.getReason(), e.getStatusCode());
+		} catch (ServiceException ex) {
+			throw new ServiceException(true, ex.getErrorCode(), ex.getLocalizedMessage());
+		} catch (Exception ex) {
+			throw new ServiceException(true, 401, "Error while updating category: " +ex.getLocalizedMessage());
 		}
 	}
 
@@ -148,8 +148,10 @@ public class CategoryController {
 		try {
 			String status = categoryService.deleteCategory(categoryId);
 			return new ResponseEntity<>(status, HttpStatus.OK);
-		} catch (ResponseStatusException e) {
-			return new ResponseEntity<>(e.getReason(), e.getStatusCode());
+		} catch (ServiceException ex) {
+			throw new ServiceException(true, ex.getErrorCode(), ex.getLocalizedMessage());
+		} catch (Exception ex) {
+			throw new ServiceException(true, 401, "Error while deleting category: " +ex.getLocalizedMessage());
 		}
 	}
 
