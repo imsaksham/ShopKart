@@ -3,22 +3,25 @@ package com.shopkart.project.service;
 import java.util.List;
 import java.util.Map;
 
+import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 
 import com.shopkart.project.exceptions.ServiceException;
 import com.shopkart.project.model.Category;
+import com.shopkart.project.payload.CategoryDTO;
+import com.shopkart.project.payload.CategoryResponse;
 import com.shopkart.project.repositories.CategoryRepository;
 
 @Service
 public class CategoryServiceImpl implements CategoryService {
 
 	private final CategoryRepository categoryRepository;
+	private final ModelMapper modelMapper;
 
-	public CategoryServiceImpl(CategoryRepository categoryRepository) {
+	public CategoryServiceImpl(CategoryRepository categoryRepository, ModelMapper modelMapper) {
 		this.categoryRepository = categoryRepository;
+		this.modelMapper = new ModelMapper();
 	}
-
-	// private Long nextId = 1L;
 
 	public Category mapToCategory(Map<String, Object> requestBody) {
 		Category category = new Category();
@@ -27,45 +30,61 @@ public class CategoryServiceImpl implements CategoryService {
 		return category;
 	}
 
-	@Override
-	public List<Category> getAllCategories() {
-		try {
-			return categoryRepository.findAll();
-		} catch (Exception ex) {
-			throw ex;
-		}
+	private CategoryDTO convertToCategoryDto(Category category) {
+		return modelMapper.map(category, CategoryDTO.class);
+	}
+
+	private CategoryResponse mapToCategoryResponse(List<CategoryDTO> result) {
+		CategoryResponse categoryResponse = new CategoryResponse();
+		categoryResponse.setContent(result);
+
+		return categoryResponse;
 	}
 
 	@Override
-	public void createCategory(Map<String, Object> requestBody) {
+	public CategoryResponse getAllCategories() {
 		try {
-			// category.setCategoryId(nextId++);
-			Category category = mapToCategory(requestBody);
-			categoryRepository.save(category);
-		} catch (Exception ex) {
-			throw ex;
-		}
-	}
+			List<Category> categories = categoryRepository.findAll();
 
-	@Override
-	public String deleteCategory(Long categoryId) {
-		try {
-			Category category = categoryRepository.findById(categoryId)
-					.orElseThrow(() -> new ServiceException(true, 404, "Category Id not found"));
-
-			categoryRepository.delete(category);
-			return "Category with categoryId: " +categoryId + " deleted successfully !!";
-		} catch (Exception ex) {
-			if (ex instanceof ServiceException) {
-				throw new ServiceException(true, 404, ex.getLocalizedMessage());
+			if (categories.isEmpty()) {
+				throw new ServiceException(true, 401, "No category created till now");
 			}
 
+			List<CategoryDTO> result = categories.stream()
+												 .map(category -> this.convertToCategoryDto(category))
+												 .toList();
+
+			return mapToCategoryResponse(result);
+		} catch (ServiceException ex) {
+			throw new ServiceException(true, ex.getErrorCode(), ex.getLocalizedMessage());
+		} catch (Exception ex) {
 			throw ex;
 		}
 	}
 
 	@Override
-	public Category updateCategpry(Map<String, Object> requestBody, Long categoryId) {
+	public CategoryDTO createCategory(Map<String, Object> requestBody) {
+		try {
+			// category.setCategoryId(nextId++);
+			Category isCategoryAvailable = categoryRepository.findByCategoryNameIgnoreCase(requestBody.get("categoryName").toString());
+
+			if (isCategoryAvailable != null) {
+				throw new ServiceException(true, 401, "Category with the name '" +requestBody.get("categoryName") + "' already exist!!!");
+			}
+			Category category = mapToCategory(requestBody);
+			Category savedCategory = categoryRepository.save(category);
+
+			CategoryDTO savedCategoryDto = this.convertToCategoryDto(savedCategory);
+			return savedCategoryDto;
+		} catch (ServiceException ex) {
+			throw new ServiceException(true, ex.getErrorCode(), ex.getLocalizedMessage());
+		}  catch (Exception ex) {
+			throw ex;
+		}
+	}
+
+	@Override
+	public CategoryDTO updateCategory(Map<String, Object> requestBody, Long categoryId) {
 		try {
 			Category savedCategory = categoryRepository.findById(categoryId)
 					  .orElseThrow(() -> new ServiceException(true, 404, "Category not found"));
@@ -74,11 +93,31 @@ public class CategoryServiceImpl implements CategoryService {
 				savedCategory.setCategoryName(requestBody.get("categoryName").toString());
 			}
 
-			return categoryRepository.save(savedCategory);
+			Category updatedCategory = categoryRepository.save(savedCategory);
+			CategoryDTO updatedCategoryDto = this.convertToCategoryDto(updatedCategory);
+
+			return updatedCategoryDto;
+		} catch (ServiceException ex) {
+			throw new ServiceException(true, ex.getErrorCode(), ex.getLocalizedMessage());
+		}  catch (Exception ex) {
+			throw ex;
+		}
+	}
+
+	@Override
+	public CategoryDTO deleteCategory(Long categoryId) {
+		try {
+			Category category = categoryRepository.findById(categoryId)
+					.orElseThrow(() -> new ServiceException(true, 404, "Category Id not found"));
+
+			categoryRepository.delete(category);
+			CategoryDTO deletedCategoryDto = this.convertToCategoryDto(category);
+			return deletedCategoryDto;
 		} catch (Exception ex) {
 			if (ex instanceof ServiceException) {
 				throw new ServiceException(true, 404, ex.getLocalizedMessage());
 			}
+
 			throw ex;
 		}
 	}

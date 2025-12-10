@@ -6,4 +6,5 @@ import com.shopkart.project.model.Category;
 
 public interface CategoryRepository extends JpaRepository<Category, Long> {
 
+	Category findByCategoryNameIgnoreCase(String categoryName);
 }

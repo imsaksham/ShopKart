@@ -22,7 +22,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.shopkart.project.exceptions.ServiceException;
-import com.shopkart.project.model.Category;
+import com.shopkart.project.payload.CategoryDTO;
+import com.shopkart.project.payload.CategoryResponse;
 import com.shopkart.project.service.CategoryService;
 import com.shopkart.project.util.MessageUtility;
 import com.shopkart.project.util.StringUtil;
@@ -103,10 +104,10 @@ public class CategoryController {
 	}
 
 	@GetMapping("/public/categories")
-	public ResponseEntity<List<Category>> getAllCategories() {
+	public ResponseEntity<CategoryResponse> getAllCategories() {
 		try {
-			List<Category> categories = categoryService.getAllCategories();
-			return new ResponseEntity<>(categories, HttpStatus.OK);
+			CategoryResponse result = categoryService.getAllCategories();
+			return new ResponseEntity<>(result, HttpStatus.OK);
 		} catch (ServiceException ex) {
 			throw new ServiceException(true, ex.getErrorCode(), ex.getLocalizedMessage());
 		} catch (Exception ex) {
@@ -115,13 +116,13 @@ public class CategoryController {
 	}
 
 	@PostMapping("/public/categories")
-	public ResponseEntity<String> createCategory(@RequestBody Map<String, Object> requestBody) {
+	public ResponseEntity<CategoryDTO> createCategory(@RequestBody Map<String, Object> requestBody) {
 		logger.debug("requestBody: " +requestBody);
 		try {
 			isValidBody("category-api", requestBody);
-			categoryService.createCategory(requestBody);
+			CategoryDTO savedCategoryDto = categoryService.createCategory(requestBody);
 
-			return new ResponseEntity<>("Category added successfully", HttpStatus.CREATED);
+			return new ResponseEntity<>(savedCategoryDto, HttpStatus.CREATED);
 		} catch (ServiceException ex) {
 			throw new ServiceException(true, ex.getErrorCode(), ex.getLocalizedMessage());
 		} catch (Exception ex) {
@@ -130,12 +131,12 @@ public class CategoryController {
 	}
 
 	@PutMapping("/public/categories/{categoryId}")
-	public ResponseEntity<String> updateCategory(@RequestBody Map<String, Object> requestBody, @PathVariable Long categoryId) {
+	public ResponseEntity<CategoryDTO> updateCategory(@RequestBody Map<String, Object> requestBody, @PathVariable Long categoryId) {
 		try {
 			isValidBody("category-api", requestBody);
-			categoryService.updateCategpry(requestBody, categoryId);
+			CategoryDTO updatedCategoryDto = categoryService.updateCategory(requestBody, categoryId);
 
-			return new ResponseEntity<String>("Updated category with category id: " +categoryId, HttpStatus.OK);
+			return new ResponseEntity<CategoryDTO>(updatedCategoryDto, HttpStatus.OK);
 		} catch (ServiceException ex) {
 			throw new ServiceException(true, ex.getErrorCode(), ex.getLocalizedMessage());
 		} catch (Exception ex) {
@@ -144,10 +145,10 @@ public class CategoryController {
 	}
 
 	@DeleteMapping("/public/categories/{categoryId}")
-	public ResponseEntity<String> deleteCategory(@PathVariable Long categoryId) {
+	public ResponseEntity<CategoryDTO> deleteCategory(@PathVariable Long categoryId) {
 		try {
-			String status = categoryService.deleteCategory(categoryId);
-			return new ResponseEntity<>(status, HttpStatus.OK);
+			CategoryDTO deletedCategoryDto = categoryService.deleteCategory(categoryId);
+			return new ResponseEntity<>(deletedCategoryDto, HttpStatus.OK);
 		} catch (ServiceException ex) {
 			throw new ServiceException(true, ex.getErrorCode(), ex.getLocalizedMessage());
 		} catch (Exception ex) {
