@@ -1,17 +1,17 @@
 package com.shopkart.project.service;
 
-import java.util.List;
 import java.util.Map;
 
-import com.shopkart.project.model.Category;
+import com.shopkart.project.payload.CategoryDTO;
+import com.shopkart.project.payload.CategoryResponse;
 
 public interface CategoryService {
 
-	List<Category> getAllCategories();
+	CategoryResponse getAllCategories();
 
-	void createCategory(Map<String, Object> requestBody);
+	CategoryDTO createCategory(Map<String, Object> requestBody);
 
-	String deleteCategory(Long categoryId);
+	CategoryDTO updateCategory(Map<String, Object> requestBody, Long categoryId);
 
-	Category updateCategpry(Map<String, Object> requestBody, Long categoryId);
+	CategoryDTO deleteCategory(Long categoryId);
 }
