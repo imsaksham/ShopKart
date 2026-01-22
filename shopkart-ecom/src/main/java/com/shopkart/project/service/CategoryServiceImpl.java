@@ -4,8 +4,13 @@ import java.util.List;
 import java.util.Map;
 
 import org.modelmapper.ModelMapper;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
+import com.shopkart.project.config.Constant;
 import com.shopkart.project.exceptions.ServiceException;
 import com.shopkart.project.model.Category;
 import com.shopkart.project.payload.CategoryDTO;
@@ -34,17 +39,29 @@ public class CategoryServiceImpl implements CategoryService {
 		return modelMapper.map(category, CategoryDTO.class);
 	}
 
-	private CategoryResponse mapToCategoryResponse(List<CategoryDTO> result) {
+	private CategoryResponse mapToCategoryResponse(List<CategoryDTO> result, Page<Category> categoryPage) {
 		CategoryResponse categoryResponse = new CategoryResponse();
 		categoryResponse.setContent(result);
+		categoryResponse.setPageNumber(categoryPage.getNumber());
+		categoryResponse.setPageSize(categoryPage.getSize());
+		categoryResponse.setTotalAvailableRecords(categoryPage.getTotalElements());
+		categoryResponse.setTotalPages(categoryPage.getTotalPages());
+		categoryResponse.setLastPage(categoryPage.isLast());
 
 		return categoryResponse;
 	}
 
 	@Override
-	public CategoryResponse getAllCategories() {
+	public CategoryResponse getAllCategories(Integer pageNumber, Integer pageSize, String sortBy, String sortOrder) {
 		try {
-			List<Category> categories = categoryRepository.findAll();
+			Sort sortByAndOrder = Constant.SORT_DIRECTION.equalsIgnoreCase(sortOrder) 
+								? Sort.by(sortBy).ascending() 
+								: Sort.by(sortBy).descending();
+
+			Pageable pageDetails = PageRequest.of(pageNumber, pageSize, sortByAndOrder);
+			Page<Category> categoryPage = categoryRepository.findAll(pageDetails);
+
+			List<Category> categories = categoryPage.getContent();
 
 			if (categories.isEmpty()) {
 				throw new ServiceException(true, 401, "No category created till now");
@@ -54,7 +71,7 @@ public class CategoryServiceImpl implements CategoryService {
 												 .map(category -> this.convertToCategoryDto(category))
 												 .toList();
 
-			return mapToCategoryResponse(result);
+			return mapToCategoryResponse(result, categoryPage);
 		} catch (ServiceException ex) {
 			throw new ServiceException(true, ex.getErrorCode(), ex.getLocalizedMessage());
 		} catch (Exception ex) {

@@ -7,7 +7,7 @@ import com.shopkart.project.payload.CategoryResponse;
 
 public interface CategoryService {
 
-	CategoryResponse getAllCategories();
+	CategoryResponse getAllCategories(Integer pageNumber, Integer pageSize, String sortBy, String sortOrder);
 
 	CategoryDTO createCategory(Map<String, Object> requestBody);
 
