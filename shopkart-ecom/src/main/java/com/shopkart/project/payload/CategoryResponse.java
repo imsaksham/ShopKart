@@ -12,4 +12,9 @@ import lombok.NoArgsConstructor;
 public class CategoryResponse {
 
 	private List<CategoryDTO> content;
+	private Integer pageNumber;
+	private Integer pageSize;
+	private Long totalAvailableRecords;
+	private Integer totalPages;
+	private boolean lastPage;
 }

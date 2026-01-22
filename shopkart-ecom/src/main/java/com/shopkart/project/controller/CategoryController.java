@@ -18,9 +18,11 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.shopkart.project.config.Constant;
 import com.shopkart.project.exceptions.ServiceException;
 import com.shopkart.project.payload.CategoryDTO;
 import com.shopkart.project.payload.CategoryResponse;
@@ -104,9 +106,13 @@ public class CategoryController {
 	}
 
 	@GetMapping("/public/categories")
-	public ResponseEntity<CategoryResponse> getAllCategories() {
+	public ResponseEntity<CategoryResponse> getAllCategories(
+			@RequestParam(defaultValue = Constant.PAGE_NUMBER, required = false) Integer pageNumber,
+			@RequestParam(defaultValue = Constant.PAGE_SIZE, required = false) Integer pageSize,
+			@RequestParam(defaultValue = Constant.SORT_CATEGORY_BY, required = false) String sortBy,
+			@RequestParam(defaultValue = Constant.SORT_DIRECTION, required = false) String sortOrder) {
 		try {
-			CategoryResponse result = categoryService.getAllCategories();
+			CategoryResponse result = categoryService.getAllCategories(pageNumber, pageSize, sortBy, sortOrder);
 			return new ResponseEntity<>(result, HttpStatus.OK);
 		} catch (ServiceException ex) {
 			throw new ServiceException(true, ex.getErrorCode(), ex.getLocalizedMessage());
